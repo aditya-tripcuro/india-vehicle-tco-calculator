@@ -23,8 +23,11 @@ describe('default state', () => {
     expect(state.settings).toMatchObject({
       ownershipYears: 15,
       opportunityCostRate: 0.08,
+      monthlyHighwayKm: 800,
+      monthlyCityKm: 400,
       baselineVehicleId: 'brezza',
     });
+    expect(state.vehicles[2].capacityAtCycleLife).toBe(0.8); // 80% at 1,200 cycles
   });
 
   it('calculates every year from 1 through 15', () => {
@@ -99,14 +102,54 @@ describe('electric energy calculations', () => {
     expect(y1.battery!.annualEfc).not.toBeCloseTo(y1.gridKwh / 49, 2);
   });
 
-  it('battery capacity degradation is tracked separately from efficiency', () => {
+  it('fades capacity with cycles: 80% of rated capacity at the cycle-life limit', () => {
     const r = resultFor('evitara');
-    // Efficiency degradation disabled by default → same kWh every year...
-    expect(r.years[14].batteryKwh).toBeCloseTo(r.years[0].batteryKwh, 8);
-    // ...even though capacity has degraded to 49 × 0.98¹⁴.
-    const expectedCapacity = 49 * Math.pow(0.98, 14);
-    expect(r.totals.finalRemainingCapacityKwh).toBeCloseTo(expectedCapacity, 6);
-    expect(r.totals.finalRemainingCapacityPercent).toBeCloseTo(Math.pow(0.98, 14), 8);
+    const cum = r.years[14].battery!.cumulativeEfc;
+    expect(r.years[14].battery!.remainingCapacityPercent).toBeCloseTo(
+      Math.pow(0.8, cum / 1200),
+      8,
+    );
+    // same thing expressed as a per-cycle fade factor of 0.8^(1/1200)
+    expect(r.years[14].battery!.remainingCapacityKwh).toBeCloseTo(
+      49 * Math.pow(Math.pow(0.8, 1 / 1200), cum),
+      6,
+    );
+    // cycle-based fade is milder than the limit once the battery is past it:
+    // at 822 of 1,200 cycles the battery is still above 80%
+    expect(r.years[14].battery!.remainingCapacityPercent).toBeGreaterThan(0.8);
+    expect(r.totals.finalRemainingCapacityPercent).toBeCloseTo(Math.pow(0.8, cum / 1200), 8);
+  });
+
+  it('battery fade follows cycles, not calendar time', () => {
+    const vehicles = defaults();
+    const ev = vehicles.find((v) => v.id === 'evitara')!;
+    ev.efficiencyDegradationEnabled = false;
+    // Double the driving (global profile) → double the cycles per year → more fade.
+    // Compare year 8, before the high-mileage scenario crosses the 1,200-cycle
+    // limit (it reaches it in year 11, resets the counter and replaces).
+    const high = calculateVehicle(
+      ev,
+      { ...DEFAULT_SETTINGS, monthlyHighwayKm: 1600, monthlyCityKm: 800 },
+      vehicles[0],
+    );
+    const low = calculateVehicle(ev, DEFAULT_SETTINGS, vehicles[0]);
+    expect(high.years[7].battery!.cumulativeEfc).toBeCloseTo(
+      low.years[7].battery!.cumulativeEfc * 2,
+      4,
+    );
+    expect(high.years[7].battery!.remainingCapacityPercent).toBeLessThan(
+      low.years[7].battery!.remainingCapacityPercent,
+    );
+    // high = 0.8^(2c/L), low = 0.8^(c/L): fade per year is cycle-driven
+    expect(high.years[7].battery!.remainingCapacityPercent).toBeCloseTo(
+      Math.pow(low.years[7].battery!.remainingCapacityPercent, 2),
+      6,
+    );
+    // Consumption itself is unchanged by capacity fade (efficiency is separate)
+    expect(high.years[1].batteryKwh / high.years[1].totalKm).toBeCloseTo(
+      low.years[1].batteryKwh / low.years[1].totalKm,
+      8,
+    );
   });
 
   it('applies efficiency degradation only when enabled', () => {
@@ -124,7 +167,7 @@ describe('electric energy calculations', () => {
 
   it('scales estimated range in proportion to remaining capacity, keeping efficiency separate', () => {
     const r = resultFor('evitara');
-    const frac14 = Math.pow(0.98, 14);
+    const frac14 = Math.pow(0.8, r.years[14].battery!.cumulativeEfc / 1200);
     expect(r.years[14].battery!.highwayRangeKm).toBeCloseTo(235 * frac14, 6);
     expect(r.years[14].battery!.cityRangeKm).toBeCloseTo(343 * frac14, 6);
   });
@@ -190,7 +233,16 @@ describe('battery cycle counting and automatic replacement', () => {
     expect(r.years[6].battery!.installedYear).toBe(6);
     expect(r.years[6].battery!.batteryAge).toBe(0);
     expect(r.years[6].battery!.cumulativeEfc).toBeCloseTo(annualEfc, 8);
-    expect(r.years[6].battery!.remainingCapacityPercent).toBe(1);
+    // Fresh battery has fewer cycles on it → more capacity than the outgoing one.
+    // Fade is cycle-based, so after one year of service it is below 100% but well
+    // above the outgoing battery (0.8^(annualEfc/300) vs 0.8^(annualEfc*6/300)).
+    expect(r.years[6].battery!.remainingCapacityPercent).toBeCloseTo(
+      Math.pow(0.8, annualEfc / 300),
+      6,
+    );
+    expect(r.years[6].battery!.remainingCapacityPercent).toBeGreaterThan(
+      r.years[5].battery!.remainingCapacityPercent,
+    );
   });
 
   it('supports repeated replacements when the replacement battery also reaches its limit', () => {
@@ -215,10 +267,17 @@ describe('battery cycle counting and automatic replacement', () => {
     const ev = vehicles.find((v) => v.id === 'evitara')!;
     ev.manualReplacementYear = 5;
     const r = calculateVehicle(ev, DEFAULT_SETTINGS, vehicles[0]);
+    const annualEfc = (HW_KM / 4.8 + CITY_KM / 7.0) / 49;
     expect(r.totals.replacements.map((x) => x.replacedInYear)).toEqual([5]);
     expect(r.years[4].batteryReplacementCost).toBe(800_000);
     expect(r.years[5].battery!.installedYear).toBe(5);
-    expect(r.years[5].battery!.remainingCapacityPercent).toBe(1);
+    // New battery starts at 0 cycles → 100% capacity before the year's cycling;
+    // after year 6's ~54.8 cycles it has faded to 0.8^(54.8/1200) ≈ 99.0%
+    expect(r.years[5].battery!.remainingCapacityPercent).toBeCloseTo(
+      Math.pow(0.8, annualEfc / 1200),
+      6,
+    );
+    expect(r.years[5].battery!.remainingCapacityPercent).toBeGreaterThan(0.98);
   });
 
   it('replacements appear in maintenance-year grouping via a separate line item, base maintenance unaffected', () => {
@@ -487,8 +546,9 @@ describe('validation', () => {
     v.electricityPrice = -2;
     v.chargingEfficiency = 0;
     v.batteryCycleLife = 0;
+    v.capacityAtCycleLife = 0;
     const issues = validateVehicle(v, 15);
-    expect(issues).toHaveLength(4);
+    expect(issues).toHaveLength(5);
   });
 
   it('rejects invalid petrol inputs', () => {

@@ -162,7 +162,9 @@ function BatteryCard({
       <p className="inline-note" style={{ margin: '8px 0 0' }}>
         Cycle life ({v.batteryCycleLife.toLocaleString('en-IN')} EFC) and replacement cost are
         user-editable planning assumptions — not confirmed manufacturer specifications and not a
-        prediction that replacement is inevitable. Equivalent full cycles are counted against the
+        prediction that replacement is inevitable. Capacity fades with charge cycles, reaching
+        {(v.capacityAtCycleLife * 100).toFixed(0)}% of rated capacity at the cycle-life limit, and
+        resets when a battery is replaced. Equivalent full cycles are counted against the
         rated capacity of the installed battery; charging losses affect grid electricity only.
         Range estimates scale with remaining capacity and are approximations for planning.
         {current && current.batteryIndex > 0 && (

@@ -50,7 +50,7 @@ export function VehiclePanel({
         chargingEfficiency: 0.9,
         batteryCycleLife: 1200,
         batteryReplacementCost: v.batteryReplacementCost || 800_000,
-        annualBatteryDegradation: 0.02,
+        capacityAtCycleLife: 0.8,
         electricityPrice: v.electricityPrice || 8,
         electricityEscalation: 0.03,
         highwayRangeKm: v.highwayRangeKm || 235,
@@ -307,8 +307,8 @@ export function VehiclePanel({
             <Field label="Battery replacement cost (₹)" hint="Full replacement incl. labour & taxes">
               <NumberInput value={v.batteryReplacementCost} min={0} step={10000} onChange={(n) => onChange({ batteryReplacementCost: n })} />
             </Field>
-            <Field label="Battery capacity degradation (%/yr)">
-              <NumberInput value={v.annualBatteryDegradation} percent min={0} max={99} onChange={(n) => onChange({ annualBatteryDegradation: n })} />
+            <Field label="Capacity at cycle-life limit (%)" hint="Cycle-based fade: 80% means the battery retains 80% of rated capacity after the full cycle life">
+              <NumberInput value={v.capacityAtCycleLife} percent min={1} max={100} onChange={(n) => onChange({ capacityAtCycleLife: n })} />
             </Field>
             <Field label="Apply energy-efficiency degradation?">
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>

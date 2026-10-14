@@ -42,7 +42,9 @@ export interface VehicleConfig {
   chargingEfficiency: number; // fraction (0,1]
   batteryCycleLife: number; // equivalent full cycles
   batteryReplacementCost: number; // ₹
-  annualBatteryDegradation: number; // fraction
+  /** Fraction of rated capacity remaining when the cycle-life limit is reached
+   *  (0.8 = 80% at 1,200 cycles). Capacity fade is cycle-based, not time-based. */
+  capacityAtCycleLife: number;
   manualReplacementYear: number | null;
 
   // Financial

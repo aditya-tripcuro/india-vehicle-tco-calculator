@@ -28,12 +28,14 @@ npm run compare    # print the default-scenario comparison to the terminal
 - **Year-by-year engine (Year 1–15)**: separate highway/city consumption, petrol price
   escalation (default 2%/yr) with mileage degradation (0.5%/yr), electricity escalation
   (3%/yr) with charging losses (90% efficiency → grid kWh = battery kWh ÷ 0.9).
-- **Battery model**: capacity degradation (2%/yr) tracked separately from energy
-  efficiency; equivalent full cycles counted against rated capacity (charging losses do
-  **not** inflate the counter); automatic battery replacement when the installed
-  battery's cumulative EFCs reach the cycle-life limit (default 1,200), with counter and
-  capacity-clock reset, repeated-replacement support, manual replacement year for
-  scenario testing, and cycle-life scenarios (800/1,000/1,200/1,500/2,000).
+- **Battery model**: capacity fade is **cycle-based** — calibrated so the battery
+  retains 80% of rated capacity at the cycle-life limit (configurable), fading with
+  charge cycles rather than calendar time and resetting on replacement. Equivalent full
+  cycles are counted against rated capacity (charging losses do **not** inflate the
+  counter); automatic battery replacement when the installed battery's cumulative EFCs
+  reach the cycle-life limit (default 1,200), with counter and capacity-clock reset,
+  repeated-replacement support, manual replacement year for scenario testing, and
+  cycle-life scenarios (800/1,000/1,200/1,500/2,000).
 - **Cash TCO vs Economic TCO**: opportunity cost of the extra upfront capital vs the
   selected baseline (default Brezza) at 8%/yr, shown as a separate, clearly-labelled
   economic adjustment — annual adjustments telescope exactly to the cumulative figure,

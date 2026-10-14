@@ -271,9 +271,10 @@ export default function App() {
         <section>
           <h2>Battery condition &amp; replacement history</h2>
           <p className="section-sub">
-            Capacity degradation is tracked separately from cycle life. Replacements trigger
-            automatically when the installed battery’s cumulative equivalent full cycles reach the
-            configured cycle-life limit.
+            Capacity fades cycle-by-cycle — reaching 80% of rated capacity at the cycle-life
+            limit by default — not with calendar time. Replacements trigger automatically when
+            the installed battery’s cumulative equivalent full cycles reach the configured
+            cycle-life limit.
           </p>
           <BatterySection
             comparison={comparison}

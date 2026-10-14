@@ -26,8 +26,8 @@ export function validateVehicle(v: VehicleConfig, ownershipYears: number): strin
       issues.push('Charging efficiency must be between 0% (exclusive) and 100%.');
     if (!(v.batteryCycleLife >= 1)) issues.push('Cycle life must be at least 1 equivalent full cycle.');
     if (!(v.batteryReplacementCost >= 0)) issues.push('Battery replacement cost cannot be negative.');
-    if (!(v.annualBatteryDegradation >= 0 && v.annualBatteryDegradation < 1))
-      issues.push('Battery degradation must be between 0% and 100%.');
+    if (!(v.capacityAtCycleLife > 0 && v.capacityAtCycleLife <= 1))
+      issues.push('Capacity at cycle-life limit must be between 0% (exclusive) and 100%.');
     if (v.annualEfficiencyDegradation < 0 || v.annualEfficiencyDegradation >= 1)
       issues.push('Efficiency degradation must be between 0% and 100%.');
     if (

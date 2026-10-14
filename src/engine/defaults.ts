@@ -53,7 +53,7 @@ export function makeDefaultVehicles(): VehicleConfig[] {
       chargingEfficiency: 0.9,
       batteryCycleLife: 1200,
       batteryReplacementCost: 800_000,
-      annualBatteryDegradation: 0.02,
+      capacityAtCycleLife: 0.8, // 80% of rated capacity at the cycle-life limit
       manualReplacementYear: null,
       year1Maintenance: 12_000,
       year1Insurance: 22_000,
@@ -83,7 +83,7 @@ export function makeDefaultVehicles(): VehicleConfig[] {
       chargingEfficiency: 0.9,
       batteryCycleLife: 1200,
       batteryReplacementCost: 800_000,
-      annualBatteryDegradation: 0.02,
+      capacityAtCycleLife: 0.8, // 80% of rated capacity at the cycle-life limit
       manualReplacementYear: null,
       year1Maintenance: 15_000,
       year1Insurance: 24_000,
@@ -113,7 +113,7 @@ export function makeDefaultVehicles(): VehicleConfig[] {
       chargingEfficiency: 0.9,
       batteryCycleLife: 1200,
       batteryReplacementCost: 800_000,
-      annualBatteryDegradation: 0.02,
+      capacityAtCycleLife: 0.8, // 80% of rated capacity at the cycle-life limit
       manualReplacementYear: null,
       year1Maintenance: 8_000,
       year1Insurance: 28_000,

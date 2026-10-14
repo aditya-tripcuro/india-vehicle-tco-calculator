@@ -161,7 +161,16 @@ export function calculateVehicle(
 
     if (isEv) {
       const batteryAge = Math.max(0, n - batteryServiceStart);
-      const capacityFraction = Math.pow(1 - v.annualBatteryDegradation, batteryAge);
+      // Cycle-based capacity fade: capacity falls with charge throughput
+      // (equivalent full cycles on the installed battery), reaching
+      // capacityAtCycleLife exactly at the cycle-life limit — e.g. 80% at
+      // 1,200 cycles. Calendar time alone causes no fade; replacing the
+      // battery resets both the cycle counter and the capacity clock.
+      const cycleFadeFactor =
+        v.batteryCycleLife > 0 && v.capacityAtCycleLife > 0 && v.capacityAtCycleLife <= 1
+          ? Math.pow(v.capacityAtCycleLife, 1 / v.batteryCycleLife)
+          : 1;
+      const capacityFraction = Math.pow(cycleFadeFactor, cumulativeEfc);
       const remainingCapacityKwh = v.batteryCapacityKwh * capacityFraction;
       const manualTrigger =
         v.manualReplacementYear != null && Math.round(v.manualReplacementYear) === n;
