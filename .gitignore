@@ -1,0 +1,14 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Logs & temp
+*.log
+nohup.out
+.DS_Store
+
+# Workspace tool artifacts (not part of the project)
+.v2c/
+.video_agent/

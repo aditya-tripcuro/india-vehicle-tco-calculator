@@ -1,0 +1,187 @@
+export type Powertrain = 'petrol' | 'electric';
+
+export interface OneTimeExpense {
+  id: string;
+  /** 1-based ownership year in which the expense occurs */
+  year: number;
+  label: string;
+  amount: number;
+}
+
+export interface TyreDetail {
+  pricePerTyre: number;
+  numberOfTyres: number;
+  replacementIntervalKm: number;
+}
+
+export interface VehicleConfig {
+  id: string;
+  name: string;
+  powertrain: Powertrain;
+
+  purchasePrice: number;
+  /** Rated full-charge range (km). EV only — petrol vehicles carry no range. */
+  highwayRangeKm: number;
+  cityRangeKm: number;
+
+  // Petrol
+  highwayMileage: number; // km/litre
+  cityMileage: number; // km/litre
+  annualMileageDegradation: number; // fraction (0.005 = 0.5%/yr)
+  fuelPrice: number; // ₹/litre
+  fuelPriceEscalation: number; // fraction
+
+  // Electric
+  batteryCapacityKwh: number; // rated kWh
+  highwayEfficiency: number; // km/kWh
+  cityEfficiency: number; // km/kWh
+  efficiencyDegradationEnabled: boolean;
+  annualEfficiencyDegradation: number; // fraction
+  electricityPrice: number; // ₹/kWh
+  electricityEscalation: number; // fraction
+  chargingEfficiency: number; // fraction (0,1]
+  batteryCycleLife: number; // equivalent full cycles
+  batteryReplacementCost: number; // ₹
+  annualBatteryDegradation: number; // fraction
+  manualReplacementYear: number | null;
+
+  // Financial
+  year1Maintenance: number;
+  maintenanceEscalation: number; // fraction
+  year1Insurance: number;
+  insuranceAnnualChange: number; // fraction, may be negative
+  year1TyreCost: number; // annualized provision
+  tyreEscalation: number; // fraction
+  useDetailedTyreModel: boolean;
+  tyreDetail: TyreDetail;
+  resaleMode: 'percent' | 'fixed';
+  resalePercent: number; // fraction of purchase price
+  resaleFixed: number; // ₹ (used when resaleMode === 'fixed')
+  otherExpenses: OneTimeExpense[];
+}
+
+export interface GlobalSettings {
+  ownershipYears: number;
+  opportunityCostRate: number; // fraction
+  /** Driving profile — shared by every vehicle in the comparison. */
+  monthlyHighwayKm: number;
+  monthlyCityKm: number;
+  baselineVehicleId: string;
+  distanceGrowthEnabled: boolean;
+  annualDistanceGrowth: number; // fraction
+}
+
+export interface BatteryYearState {
+  batteryIndex: number;
+  installedYear: number;
+  batteryAge: number;
+  ratedCapacityKwh: number;
+  remainingCapacityKwh: number;
+  remainingCapacityPercent: number;
+  annualEfc: number;
+  cumulativeEfc: number;
+  remainingCycles: number;
+  replacementThisYear: boolean;
+  highwayRangeKm: number;
+  cityRangeKm: number;
+}
+
+export interface VehicleYearResult {
+  year: number;
+  highwayKm: number;
+  cityKm: number;
+  totalKm: number;
+
+  // Petrol
+  highwayLitres: number;
+  cityLitres: number;
+  totalLitres: number;
+
+  // Electric
+  highwayKwh: number;
+  cityKwh: number;
+  batteryKwh: number;
+  gridKwh: number;
+
+  /** ₹ per litre (petrol) or ₹ per kWh (EV) in that year */
+  energyPrice: number;
+  energyCost: number;
+
+  maintenance: number;
+  batteryReplacementCost: number;
+  insurance: number;
+  tyres: number;
+  other: number;
+
+  operatingCost: number;
+  purchaseApplied: number;
+  resale: number;
+
+  cumulativeCashTco: number;
+  opportunityAdjustment: number;
+  cumulativeForegoneEarnings: number;
+  cumulativeEconomicTco: number;
+
+  battery: BatteryYearState | null;
+}
+
+export interface BatteryReplacementRecord {
+  /** 0 = original battery */
+  batteryIndex: number;
+  installedYear: number;
+  replacedInYear: number;
+  cost: number;
+  efcAtReplacement: number;
+}
+
+export interface InstalledBatterySummary {
+  batteryIndex: number;
+  installedYear: number;
+  /** EFC accumulated on this battery by replacement or end of ownership */
+  accumulatedEfc: number;
+  replacedInYear: number | null;
+}
+
+export interface VehicleTotals {
+  energyCost: number;
+  maintenanceExBattery: number;
+  batteryReplacementTotal: number;
+  insurance: number;
+  tyres: number;
+  other: number;
+  operatingTotal: number;
+  purchasePrice: number;
+  resale: number;
+  cashTco: number;
+  extraUpfront: number;
+  foregoneEarningsAtEnd: number;
+  economicTco: number;
+  unitsTotal: number; // litres (petrol) or grid kWh (EV)
+  batteryKwhTotal: number;
+  batteries: InstalledBatterySummary[];
+  totalEfcOriginalBattery: number;
+  finalRemainingCapacityKwh: number;
+  finalRemainingCapacityPercent: number;
+  replacements: BatteryReplacementRecord[];
+  projectedReplacementYear: number | null;
+}
+
+export interface VehicleResult {
+  config: VehicleConfig;
+  isBaseline: boolean;
+  years: VehicleYearResult[];
+  totals: VehicleTotals;
+}
+
+export interface ComparisonResult {
+  ownershipYears: number;
+  baselineId: string;
+  vehicles: VehicleResult[];
+}
+
+export interface AppState {
+  settings: GlobalSettings;
+  vehicles: VehicleConfig[];
+}
+
+export type TcoMetric = 'annual' | 'cash' | 'economic';
