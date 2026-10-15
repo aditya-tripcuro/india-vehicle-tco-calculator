@@ -56,9 +56,10 @@ export interface VehicleConfig {
   tyreEscalation: number; // fraction
   useDetailedTyreModel: boolean;
   tyreDetail: TyreDetail;
-  resaleMode: 'percent' | 'fixed';
-  resalePercent: number; // fraction of purchase price
-  resaleFixed: number; // ₹ (used when resaleMode === 'fixed')
+  /** Fraction of purchase price retained if sold at that age. Ownership ending
+   *  between anchors interpolates linearly; beyond 15 years the 10→15 slope
+   *  continues, floored at zero. */
+  resaleSchedule: { year5: number; year10: number; year15: number };
   otherExpenses: OneTimeExpense[];
 }
 

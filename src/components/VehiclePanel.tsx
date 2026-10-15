@@ -55,6 +55,7 @@ export function VehiclePanel({
         electricityEscalation: 0.03,
         highwayRangeKm: v.highwayRangeKm || 235,
         cityRangeKm: v.cityRangeKm || 343,
+        resaleSchedule: { year5: 0.35, year10: 0.15, year15: 0.05 },
       });
     } else {
       onChange({
@@ -66,6 +67,7 @@ export function VehiclePanel({
         fuelPriceEscalation: 0.02,
         highwayRangeKm: 0,
         cityRangeKm: 0,
+        resaleSchedule: { year5: 0.4, year10: 0.2, year15: 0.05 },
         manualReplacementYear: null,
       });
     }
@@ -189,25 +191,21 @@ export function VehiclePanel({
           <Field label="Insurance change (%/yr)">
             <NumberInput value={v.insuranceAnnualChange} percent step={1} onChange={(n) => onChange({ insuranceAnnualChange: n })} />
           </Field>
-          <Field label="Resale value mode">
-            <select
-              value={v.resaleMode}
-              onChange={(e) => onChange({ resaleMode: e.target.value as 'percent' | 'fixed' })}
-            >
-              <option value="percent">% of purchase price</option>
-              <option value="fixed">Fixed amount</option>
-            </select>
+          <Field label="Resale after 5 years (% of price)">
+            <NumberInput value={v.resaleSchedule.year5} percent min={0} max={100} onChange={(n) => onChange({ resaleSchedule: { ...v.resaleSchedule, year5: n } })} />
           </Field>
-          {v.resaleMode === 'percent' ? (
-            <Field label="Resale value (% of price)">
-              <NumberInput value={v.resalePercent} percent min={0} max={100} onChange={(n) => onChange({ resalePercent: n })} />
-            </Field>
-          ) : (
-            <Field label="Resale value (₹)">
-              <NumberInput value={v.resaleFixed} min={0} step={1000} onChange={(n) => onChange({ resaleFixed: n })} />
-            </Field>
-          )}
+          <Field label="Resale after 10 years (% of price)">
+            <NumberInput value={v.resaleSchedule.year10} percent min={0} max={100} onChange={(n) => onChange({ resaleSchedule: { ...v.resaleSchedule, year10: n } })} />
+          </Field>
+          <Field label="Resale after 15 years (% of price)">
+            <NumberInput value={v.resaleSchedule.year15} percent min={0} max={100} onChange={(n) => onChange({ resaleSchedule: { ...v.resaleSchedule, year15: n } })} />
+          </Field>
         </div>
+        <p className="inline-note" style={{ margin: '8px 0 0' }}>
+          Resale = share of the purchase price recovered if sold at that age. Ownership ending
+          between these anchors interpolates linearly; the deduction happens in the final
+          ownership year only.
+        </p>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', margin: '10px 0 6px', flexWrap: 'wrap' }}>
           <div className="subsection-title" style={{ margin: 0 }}>Tyres</div>

@@ -367,13 +367,30 @@ describe('resale value and final TCO', () => {
     expect(r.totals.resale).toBe(68_500);
   });
 
-  it('supports a fixed resale amount', () => {
-    const vehicles = defaults();
-    const b = vehicles.find((v) => v.id === 'brezza')!;
-    b.resaleMode = 'fixed';
-    b.resaleFixed = 100_000;
-    const r = calculateVehicle(b, DEFAULT_SETTINGS, vehicles[0]);
-    expect(r.years[14].resale).toBe(100_000);
+  it('uses the age-based resale schedule: 40/20/5% petrol, 35/15/5% EV', () => {
+    const mk = (id: string, years: number) => {
+      const settings = { ...DEFAULT_SETTINGS, ownershipYears: years };
+      return calculateVehicle(
+        makeDefaultVehicles().find((v) => v.id === id)!,
+        settings,
+        makeDefaultVehicles()[0],
+      );
+    };
+    // Brezza: 40% of ₹13,70,000 at year 5, 20% at year 10, 5% at year 15
+    expect(mk('brezza', 5).totals.resale).toBe(548_000);
+    expect(mk('brezza', 10).totals.resale).toBe(274_000);
+    expect(mk('brezza', 15).totals.resale).toBe(68_500);
+    // e Vitara: 35% of ₹17,68,000 at year 5, 15% at year 10, 5% at year 15
+    expect(mk('evitara', 5).totals.resale).toBe(618_800);
+    expect(mk('evitara', 10).totals.resale).toBe(265_200);
+    expect(mk('evitara', 15).totals.resale).toBe(88_400);
+  });
+
+  it('interpolates resale linearly between anchors (year 7 petrol = 32%)', () => {
+    const settings = { ...DEFAULT_SETTINGS, ownershipYears: 7 };
+    const r = calculateVehicle(makeDefaultVehicles()[0], settings, makeDefaultVehicles()[0]);
+    // between (5, 40%) and (10, 20%): 40% − (2/5)·20% = 32%
+    expect(r.totals.resale).toBeCloseTo(1_370_000 * 0.32, 4);
   });
 
   it('includes the purchase price exactly once and reconciles cumulative cash TCO', () => {
@@ -406,7 +423,7 @@ describe('resale value and final TCO', () => {
     const settings = { ...DEFAULT_SETTINGS, ownershipYears: 10 };
     const r = resultFor('brezza', defaults(), settings);
     expect(r.years).toHaveLength(10);
-    expect(r.years[9].resale).toBe(68_500);
+    expect(r.years[9].resale).toBe(274_000); // 20% schedule anchor
     expect(r.years[9].cumulativeCashTco).toBeCloseTo(r.totals.cashTco, 6);
   });
 });

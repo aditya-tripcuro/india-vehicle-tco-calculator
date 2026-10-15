@@ -23,9 +23,10 @@ const sharedFinancial = {
   // Tyres are modelled by per-vehicle tyre life (km per set). The annualized
   // provision is only used when the user explicitly opts out.
   useDetailedTyreModel: true,
-  resaleMode: 'percent' as const,
-  resalePercent: 0.05,
-  resaleFixed: 0,
+  // Resale (fraction of purchase price retained if sold at that age):
+  // petrol 40% @ 5y, 20% @ 10y, 5% @ 15y. The e Vitara overrides with its
+  // faster-depreciating EV schedule after the spread below.
+  resaleSchedule: { year5: 0.4, year10: 0.2, year15: 0.05 },
   otherExpenses: [],
 };
 
@@ -120,6 +121,8 @@ export function makeDefaultVehicles(): VehicleConfig[] {
       year1TyreCost: 8_500,
       tyreDetail: { pricePerTyre: 8_500, numberOfTyres: 4, replacementIntervalKm: 50_000 },
       ...sharedFinancial,
+      // EVs depreciate faster: 65% of value lost by year 5, 85% by year 10.
+      resaleSchedule: { year5: 0.35, year10: 0.15, year15: 0.05 },
     },
   ];
 }
@@ -143,9 +146,24 @@ export function hydrateState(raw: unknown): AppState {
       ? r.vehicles.map((v) => {
           const template =
             base.vehicles.find((b) => b.powertrain === v?.powertrain) ?? base.vehicles[0];
+          // Migrate the pre-schedule flat resale fields onto the 5/10/15-year curve.
+          let resaleSchedule = template.resaleSchedule;
+          const stale = v as unknown as Record<string, unknown> | undefined;
+          if (!v?.resaleSchedule && stale) {
+            const flat =
+              stale.resaleMode === 'fixed' && typeof stale.resaleFixed === 'number'
+                ? stale.resaleFixed / Math.max(1, Number(v.purchasePrice) || 1)
+                : typeof stale.resalePercent === 'number'
+                  ? stale.resalePercent
+                  : null;
+            if (flat != null) {
+              resaleSchedule = { year5: flat, year10: flat, year15: flat };
+            }
+          }
           return {
             ...template,
             ...v,
+            resaleSchedule,
             tyreDetail: { ...template.tyreDetail, ...(v?.tyreDetail ?? {}) },
             otherExpenses: Array.isArray(v?.otherExpenses) ? v.otherExpenses : [],
           } as VehicleConfig;

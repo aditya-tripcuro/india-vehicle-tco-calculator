@@ -50,7 +50,7 @@ export function calculateVehicle(
   const isBaseline = v.id === baseline.id;
   const extraUpfront = isBaseline ? 0 : v.purchasePrice - baseline.purchasePrice;
   const rate = settings.opportunityCostRate;
-  const resale = resaleValue(v);
+  const resale = resaleValue(v, N);
   const growth = settings.distanceGrowthEnabled ? 1 + settings.annualDistanceGrowth : 1;
 
   const years: VehicleYearResult[] = [];

@@ -75,6 +75,18 @@ for (const vr of cmp.vehicles) {
   console.log(`${vr.config.name}: ${inr(vr.years[0].operatingCost)} → ${inr(vr.years[14].operatingCost)}`);
 }
 
+console.log('\n=== OWNERSHIP-LENGTH CHECKPOINTS (cash / economic TCO) ===');
+for (const years of [5, 10, 15]) {
+  const s = { ...state.settings, ownershipYears: years };
+  const cmpY = calculateComparison(state.vehicles, s);
+  const parts = cmpY.vehicles.map((vr) => {
+    const b = cmpY.vehicles.find((x) => x.config.id === 'brezza')!;
+    const diff = vr.isBaseline ? '' : ` (${vr.totals.cashTco - b.totals.cashTco >= 0 ? '+' : '−'}${lakh(Math.abs(vr.totals.cashTco - b.totals.cashTco))})`;
+    return `${vr.config.name.split(' ').slice(-2).join(' ')}: ${lakh(vr.totals.cashTco)} / ${lakh(vr.totals.economicTco)}${diff}, resale ${lakh(vr.totals.resale)}`;
+  });
+  console.log(`Year ${years}: ${parts.join('  |  ')}`);
+}
+
 console.log('\n=== EV vs BREZZA ANNUAL OPEX SAVINGS ===');
 for (let i = 0; i < 15; i++) {
   const saving = brezza.years[i].operatingCost - ev.years[i].operatingCost;

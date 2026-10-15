@@ -43,10 +43,14 @@ export function validateVehicle(v: VehicleConfig, ownershipYears: number): strin
   if (v.insuranceAnnualChange <= -1) issues.push('Insurance change must be greater than −100%.');
   if (!(v.year1TyreCost >= 0)) issues.push('Tyre cost cannot be negative.');
   if (v.tyreEscalation <= -1) issues.push('Tyre escalation must be greater than −100%.');
-  if (v.resaleMode === 'percent' && !(v.resalePercent >= 0 && v.resalePercent <= 1))
-    issues.push('Resale percentage must be between 0% and 100%.');
-  if (v.resaleMode === 'fixed' && !(v.resaleFixed >= 0))
-    issues.push('Resale value cannot be negative.');
+  for (const [label, val] of [
+    ['5-year', v.resaleSchedule.year5],
+    ['10-year', v.resaleSchedule.year10],
+    ['15-year', v.resaleSchedule.year15],
+  ] as const) {
+    if (!(val >= 0 && val <= 1))
+      issues.push(`Resale value at ${label} age must be between 0% and 100% of purchase price.`);
+  }
   for (const e of v.otherExpenses) {
     if (!(e.amount >= 0)) issues.push(`One-time expense “${e.label || e.year}” cannot be negative.`);
     if (!(e.year >= 1)) issues.push('One-time expense year must be 1 or later.');
