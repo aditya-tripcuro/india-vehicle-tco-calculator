@@ -57,6 +57,45 @@ export function GlobalSettingsPanel({ settings, vehicles, onChange }: Props) {
             onChange={(n) => onChange({ monthlyCityKm: n })}
           />
         </Field>
+        <Field label="Purchase on loan?">
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <input
+              type="checkbox"
+              checked={settings.loan.enabled}
+              onChange={(e) => onChange({ loan: { ...settings.loan, enabled: e.target.checked } })}
+              style={{ width: 'auto' }}
+            />
+            <span className="inline-note">Finance the purchase</span>
+          </div>
+        </Field>
+        <Field label="Down payment (% of price)" hint="Your own money — the loan covers the rest">
+          <NumberInput
+            value={settings.loan.downPaymentPercent}
+            percent
+            min={0}
+            max={100}
+            disabled={!settings.loan.enabled}
+            onChange={(n) => onChange({ loan: { ...settings.loan, downPaymentPercent: n } })}
+          />
+        </Field>
+        <Field label="Loan interest rate (%/yr)" hint="Reducing balance">
+          <NumberInput
+            value={settings.loan.annualInterestRate}
+            percent
+            step={0.25}
+            disabled={!settings.loan.enabled}
+            onChange={(n) => onChange({ loan: { ...settings.loan, annualInterestRate: n } })}
+          />
+        </Field>
+        <Field label="Loan tenure (years)">
+          <NumberInput
+            value={settings.loan.tenureYears}
+            min={1}
+            max={30}
+            disabled={!settings.loan.enabled}
+            onChange={(n) => onChange({ loan: { ...settings.loan, tenureYears: Math.max(1, Math.round(n || 1)) } })}
+          />
+        </Field>
         <Field label="Annual distance growth (%/yr, optional)">
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <input
@@ -78,6 +117,13 @@ export function GlobalSettingsPanel({ settings, vehicles, onChange }: Props) {
         Annual driving (same for every vehicle): {formatNumber(annualHw)} km highway +{' '}
         {formatNumber(annualCity)} km city = <b>{formatNumber(annualHw + annualCity)} km</b>.
         Distances stay constant unless annual growth is enabled.
+        {settings.loan.enabled && (
+          <>
+            {' '}Loan is ON: interest joins cash TCO year by year (reducing balance over the
+            tenure), and the opportunity cost is computed on the <b>down-payment</b> difference
+            only — the financed portion is not your money at stake.
+          </>
+        )}
       </p>
     </div>
   );

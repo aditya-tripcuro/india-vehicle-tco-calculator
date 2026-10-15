@@ -44,6 +44,7 @@ export function validateVehicle(v: VehicleConfig, ownershipYears: number): strin
   if (!(v.year1TyreCost >= 0)) issues.push('Tyre cost cannot be negative.');
   if (v.tyreEscalation <= -1) issues.push('Tyre escalation must be greater than −100%.');
   for (const [label, val] of [
+    ['1-year', v.resaleSchedule.year1],
     ['5-year', v.resaleSchedule.year5],
     ['10-year', v.resaleSchedule.year10],
     ['15-year', v.resaleSchedule.year15],
@@ -66,5 +67,13 @@ export function validateSettings(s: GlobalSettings): string[] {
   if (!(s.monthlyHighwayKm >= 0)) issues.push('Monthly highway distance cannot be negative.');
   if (!(s.monthlyCityKm >= 0)) issues.push('Monthly city distance cannot be negative.');
   if (s.annualDistanceGrowth < -1) issues.push('Distance growth must be greater than −100%.');
+  if (s.loan) {
+    if (!(s.loan.downPaymentPercent >= 0 && s.loan.downPaymentPercent <= 1))
+      issues.push('Loan down payment must be between 0% and 100% of the purchase price.');
+    if (!(s.loan.annualInterestRate >= 0))
+      issues.push('Loan interest rate cannot be negative.');
+    if (!(s.loan.tenureYears >= 1 && s.loan.tenureYears <= 30))
+      issues.push('Loan tenure must be between 1 and 30 years.');
+  }
   return issues;
 }

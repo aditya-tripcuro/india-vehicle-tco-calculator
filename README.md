@@ -40,10 +40,16 @@ npm run compare    # print the default-scenario comparison to the terminal
   selected baseline (default Brezza) at 8%/yr, shown as a separate, clearly-labelled
   economic adjustment — annual adjustments telescope exactly to the cumulative figure,
   never double-counted. A cheaper-than-baseline vehicle shows an opportunity benefit.
-- **Age-based resale schedule**: per-vehicle anchors for value retained at 5, 10 and 15
-  years (petrol 40% / 20% / 5%, e Vitara 35% / 15% / 5% of purchase price — editable).
-  Ownership ending between anchors interpolates linearly (beyond 15 the slope continues,
-  floored at zero); the resale credit is deducted only in the final ownership year.
+- **Age-based resale curve**: per-vehicle anchors for value retained at 1, 5, 10 and 15
+  years (80% at year 1 for all; petrol 40% / 20% / 5% and e Vitara 35% / 15% / 5% at
+  5/10/15 — editable). Ownership ending between anchors interpolates linearly (beyond 15
+  the slope continues, floored at zero); the resale credit is deducted only in the final
+  ownership year.
+- **Loan purchase** (optional, in global settings): down-payment %, interest rate and
+  tenure. When enabled, the reducing-balance amortization adds each year's **interest**
+  to that year's cash TCO (the principal is already counted once in the purchase price),
+  and the opportunity cost is computed on the **down-payment difference** vs the baseline
+  only — the financed portion is not the owner's money at stake.
 - **Outputs**: interactive chart (annual opex / cumulative cash / cumulative economic,
   with battery-replacement markers), annual TCO table with totals, maintenance/tyres/
   insurance table with expandable breakdowns and replacement-year highlighting, summary

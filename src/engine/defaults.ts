@@ -11,6 +11,10 @@ export const DEFAULT_SETTINGS: GlobalSettings = {
   opportunityCostRate: 0.08,
   monthlyHighwayKm: 800,
   monthlyCityKm: 400,
+  // Financing is off by default — the buyer is assumed to pay cash. When
+  // enabled, interest joins cash TCO and opportunity cost shifts to the
+  // down-payment difference only.
+  loan: { enabled: false, downPaymentPercent: 0.2, annualInterestRate: 0.09, tenureYears: 5 },
   baselineVehicleId: 'brezza',
   distanceGrowthEnabled: false,
   annualDistanceGrowth: 0,
@@ -24,9 +28,9 @@ const sharedFinancial = {
   // provision is only used when the user explicitly opts out.
   useDetailedTyreModel: true,
   // Resale (fraction of purchase price retained if sold at that age):
-  // petrol 40% @ 5y, 20% @ 10y, 5% @ 15y. The e Vitara overrides with its
-  // faster-depreciating EV schedule after the spread below.
-  resaleSchedule: { year5: 0.4, year10: 0.2, year15: 0.05 },
+  // petrol 80% @ 1y, 40% @ 5y, 20% @ 10y, 5% @ 15y. The e Vitara overrides
+  // with its faster-depreciating EV schedule after the spread below.
+  resaleSchedule: { year1: 0.8, year5: 0.4, year10: 0.2, year15: 0.05 },
   otherExpenses: [],
 };
 
@@ -121,8 +125,9 @@ export function makeDefaultVehicles(): VehicleConfig[] {
       year1TyreCost: 8_500,
       tyreDetail: { pricePerTyre: 8_500, numberOfTyres: 4, replacementIntervalKm: 50_000 },
       ...sharedFinancial,
-      // EVs depreciate faster: 65% of value lost by year 5, 85% by year 10.
-      resaleSchedule: { year5: 0.35, year10: 0.15, year15: 0.05 },
+      // EVs depreciate faster after the first year: 35% retained at 5y, 15% at 10y.
+      // The 1-year anchor stays at 80% for all vehicles.
+      resaleSchedule: { year1: 0.8, year5: 0.35, year10: 0.15, year15: 0.05 },
     },
   ];
 }
@@ -146,10 +151,12 @@ export function hydrateState(raw: unknown): AppState {
       ? r.vehicles.map((v) => {
           const template =
             base.vehicles.find((b) => b.powertrain === v?.powertrain) ?? base.vehicles[0];
-          // Migrate the pre-schedule flat resale fields onto the 5/10/15-year curve.
-          let resaleSchedule = template.resaleSchedule;
+          // Migrate the pre-schedule flat resale fields onto the fitted curve.
+          let resaleSchedule = { ...template.resaleSchedule };
           const stale = v as unknown as Record<string, unknown> | undefined;
-          if (!v?.resaleSchedule && stale) {
+          if (v?.resaleSchedule) {
+            resaleSchedule = { ...template.resaleSchedule, ...v.resaleSchedule };
+          } else if (stale) {
             const flat =
               stale.resaleMode === 'fixed' && typeof stale.resaleFixed === 'number'
                 ? stale.resaleFixed / Math.max(1, Number(v.purchasePrice) || 1)
@@ -157,7 +164,12 @@ export function hydrateState(raw: unknown): AppState {
                   ? stale.resalePercent
                   : null;
             if (flat != null) {
-              resaleSchedule = { year5: flat, year10: flat, year15: flat };
+              resaleSchedule = {
+                year1: template.resaleSchedule.year1,
+                year5: flat,
+                year10: flat,
+                year15: flat,
+              };
             }
           }
           return {

@@ -12,6 +12,7 @@ export interface AnnualCsvCell {
   insurance: number;
   tyres: number;
   other: number;
+  loanInterest: number;
   operating: number;
   purchase: number;
   cumulativeCash: number;
@@ -47,6 +48,7 @@ export function buildAnnualRows(comparison: ComparisonResult): AnnualRow[] {
         insurance: y.insurance,
         tyres: y.tyres,
         other: y.other,
+        loanInterest: y.loanInterest,
         operating: y.operatingCost,
         purchase: y.purchaseApplied,
         cumulativeCash: y.cumulativeCashTco,
@@ -89,6 +91,7 @@ export function annualRowsToCsv(comparison: ComparisonResult, rows: AnnualRow[])
       `${name} — Insurance ₹`,
       `${name} — Tyres ₹`,
       `${name} — Other ₹`,
+      `${name} — Loan interest ₹`,
       `${name} — Total operating ₹`,
       `${name} — Purchase ₹`,
       `${name} — Cumulative cash TCO ₹`,
@@ -123,6 +126,7 @@ export function annualRowsToCsv(comparison: ComparisonResult, rows: AnnualRow[])
         f2(c.insurance),
         f2(c.tyres),
         f2(c.other),
+        f2(c.loanInterest),
         f2(c.operating),
         f2(c.purchase),
         f2(c.cumulativeCash),
@@ -154,6 +158,7 @@ export function annualRowsToCsv(comparison: ComparisonResult, rows: AnnualRow[])
       f2(t.insurance),
       f2(t.tyres),
       f2(t.other),
+      f2(t.loanInterestTotal),
       f2(t.operatingTotal),
       f2(t.purchasePrice),
       f2(t.cashTco),

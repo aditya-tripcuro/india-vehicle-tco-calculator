@@ -525,11 +525,94 @@ describe('totals reconciliation (summary cards vs tables)', () => {
     for (const vr of cmp.vehicles) {
       for (const y of vr.years) {
         expect(y.operatingCost).toBeCloseTo(
-          y.energyCost + y.maintenance + y.batteryReplacementCost + y.insurance + y.tyres + y.other,
+          y.energyCost +
+            y.maintenance +
+            y.batteryReplacementCost +
+            y.insurance +
+            y.tyres +
+            y.other +
+            y.loanInterest,
           6,
         );
       }
     }
+  });
+});
+
+describe('resale curve with the year-1 anchor', () => {
+  it('fits the curve through 80% at year 1 for all three vehicles', () => {
+    for (const v of makeDefaultVehicles()) {
+      expect(v.resaleSchedule.year1).toBe(0.8);
+    }
+    const settings1 = { ...DEFAULT_SETTINGS, ownershipYears: 1 };
+    const r = calculateVehicle(makeDefaultVehicles()[0], settings1, makeDefaultVehicles()[0]);
+    expect(r.totals.resale).toBe(1_096_000); // 80% of ₹13,70,000
+    const ev = calculateVehicle(makeDefaultVehicles()[2], settings1, makeDefaultVehicles()[0]);
+    expect(ev.totals.resale).toBe(1_414_400); // 80% of ₹17,68,000
+  });
+
+  it('interpolates the 1→5-year segment (year 3 petrol = 60%)', () => {
+    const settings = { ...DEFAULT_SETTINGS, ownershipYears: 3 };
+    const r = calculateVehicle(makeDefaultVehicles()[0], settings, makeDefaultVehicles()[0]);
+    // between (1, 80%) and (5, 40%): 80% − (2/4)·40% = 60%
+    expect(r.totals.resale).toBeCloseTo(1_370_000 * 0.6, 4);
+  });
+});
+
+describe('loan purchase', () => {
+  const loanOn = {
+    ...DEFAULT_SETTINGS,
+    loan: { enabled: true, downPaymentPercent: 0.2, annualInterestRate: 0.09, tenureYears: 5 },
+  };
+
+  it('adds amortized loan interest to cash TCO, booked only within the tenure', () => {
+    const r = resultFor('brezza', defaults(), loanOn);
+    const price = 1_370_000;
+    const principal = price * 0.8; // ₹10,96,000
+    const months = 60;
+    const i = 0.09 / 12;
+    const emi = (principal * i * Math.pow(1 + i, months)) / (Math.pow(1 + i, months) - 1);
+    const totalInterest = emi * months - principal;
+    expect(r.totals.loanInterestTotal).toBeCloseTo(totalInterest, 0);
+    // Interest appears in years 1–5 only; each year's slice declines as the
+    // balance is paid down.
+    expect(r.years.slice(5).every((y) => y.loanInterest === 0)).toBe(true);
+    expect(r.years[0].loanInterest).toBeGreaterThan(r.years[1].loanInterest);
+    expect(r.years[1].loanInterest).toBeGreaterThan(r.years[4].loanInterest);
+    // Cash TCO = same run without loan, plus the interest
+    const cash = resultFor('brezza');
+    expect(r.totals.cashTco).toBeCloseTo(cash.totals.cashTco + totalInterest, 0);
+  });
+
+  it('bases opportunity cost on the down-payment difference only', () => {
+    const r = resultFor('venue', defaults(), loanOn);
+    // Venue costs ₹65,000 more; with 20% down the extra personal money is ₹13,000
+    expect(r.totals.extraUpfront).toBe(13_000);
+    expect(r.totals.foregoneEarningsAtEnd).toBeCloseTo(13_000 * (Math.pow(1.08, 15) - 1), 4);
+    expect(r.years[0].opportunityAdjustment).toBeCloseTo(13_000 * 0.08, 6);
+    const baseline = resultFor('brezza', defaults(), loanOn);
+    expect(baseline.totals.extraUpfront).toBe(0);
+    expect(baseline.totals.foregoneEarningsAtEnd).toBe(0);
+  });
+
+  it('reports down payment and principal, and stays inert when disabled', () => {
+    const r = resultFor('brezza', defaults(), loanOn);
+    expect(r.totals.downPayment).toBe(274_000);
+    expect(r.totals.loanPrincipal).toBe(1_096_000);
+    const cash = resultFor('brezza');
+    expect(cash.totals.loanInterestTotal).toBe(0);
+    expect(cash.totals.downPayment).toBe(1_370_000);
+    expect(cash.totals.extraUpfront).toBe(0); // baseline, cash purchase
+    const venue = resultFor('venue');
+    expect(venue.totals.extraUpfront).toBe(65_000); // full price difference when paying cash
+  });
+
+  it('validates loan settings', () => {
+    const issues = validateSettings({
+      ...DEFAULT_SETTINGS,
+      loan: { enabled: true, downPaymentPercent: 1.5, annualInterestRate: -0.1, tenureYears: 0 },
+    });
+    expect(issues).toHaveLength(3);
   });
 });
 

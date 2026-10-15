@@ -56,11 +56,22 @@ export interface VehicleConfig {
   tyreEscalation: number; // fraction
   useDetailedTyreModel: boolean;
   tyreDetail: TyreDetail;
-  /** Fraction of purchase price retained if sold at that age. Ownership ending
-   *  between anchors interpolates linearly; beyond 15 years the 10→15 slope
-   *  continues, floored at zero. */
-  resaleSchedule: { year5: number; year10: number; year15: number };
+  /** Fraction of purchase price retained if sold at that age. The curve is
+   *  fitted through these anchors: (0, 100%), (1, year1), (5, year5),
+   *  (10, year10), (15, year15); ownership ending between anchors
+   *  interpolates linearly; beyond 15 years the 10→15 slope continues,
+   *  floored at zero. */
+  resaleSchedule: { year1: number; year5: number; year10: number; year15: number };
   otherExpenses: OneTimeExpense[];
+}
+
+export interface LoanSettings {
+  enabled: boolean;
+  /** Fraction of the purchase price paid upfront by the buyer. */
+  downPaymentPercent: number;
+  /** Reducing-balance loan interest rate, per year. */
+  annualInterestRate: number;
+  tenureYears: number;
 }
 
 export interface GlobalSettings {
@@ -69,6 +80,9 @@ export interface GlobalSettings {
   /** Driving profile — shared by every vehicle in the comparison. */
   monthlyHighwayKm: number;
   monthlyCityKm: number;
+  /** Financing: when enabled, interest joins cash TCO and the opportunity-cost
+   *  base becomes the down payment instead of the full price difference. */
+  loan: LoanSettings;
   baselineVehicleId: string;
   distanceGrowthEnabled: boolean;
   annualDistanceGrowth: number; // fraction
@@ -115,6 +129,9 @@ export interface VehicleYearResult {
   insurance: number;
   tyres: number;
   other: number;
+  /** Interest paid on the vehicle loan in this year (financing cost, part of
+   *  cash TCO — not an opportunity-cost adjustment). */
+  loanInterest: number;
 
   operatingCost: number;
   purchaseApplied: number;
@@ -152,11 +169,16 @@ export interface VehicleTotals {
   insurance: number;
   tyres: number;
   other: number;
+  loanInterestTotal: number;
   operatingTotal: number;
   purchasePrice: number;
   resale: number;
   cashTco: number;
+  /** Extra personal money put in upfront vs the baseline: the full price
+   *  difference when paying cash, the down-payment difference when on loan. */
   extraUpfront: number;
+  downPayment: number;
+  loanPrincipal: number;
   foregoneEarningsAtEnd: number;
   economicTco: number;
   unitsTotal: number; // litres (petrol) or grid kWh (EV)

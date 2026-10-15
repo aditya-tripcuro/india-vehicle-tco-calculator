@@ -8,7 +8,7 @@ import type {
   VehicleTotals,
   VehicleYearResult,
 } from './types';
-import { resaleValue } from './utils';
+import { resaleValue, loanInterestByYear } from './utils';
 
 /**
  * Pure calculation engine. No React, no DOM. Rounding happens only at display
@@ -48,7 +48,18 @@ export function calculateVehicle(
   const N = Math.max(1, Math.round(settings.ownershipYears));
   const isEv = v.powertrain === 'electric';
   const isBaseline = v.id === baseline.id;
-  const extraUpfront = isBaseline ? 0 : v.purchasePrice - baseline.purchasePrice;
+  const loan = settings.loan;
+  const loanOn = !!loan?.enabled;
+
+  // Personal money put in upfront: the full price when paying cash, only the
+  // down payment when the vehicle is financed. The opportunity cost of owning
+  // the pricier vehicle applies to the difference in personal money alone —
+  // the financed portion is the bank's money, not the owner's.
+  const downPayment = loanOn ? v.purchasePrice * Math.min(1, Math.max(0, loan.downPaymentPercent)) : v.purchasePrice;
+  const downPaymentBaseline = loanOn
+    ? baseline.purchasePrice * Math.min(1, Math.max(0, loan.downPaymentPercent))
+    : baseline.purchasePrice;
+  const extraUpfront = isBaseline ? 0 : downPayment - downPaymentBaseline;
   const rate = settings.opportunityCostRate;
   const resale = resaleValue(v, N);
   const growth = settings.distanceGrowthEnabled ? 1 + settings.annualDistanceGrowth : 1;
@@ -74,6 +85,11 @@ export function calculateVehicle(
 
   const annualKmFn = (n: number) => (monthlyHighwayKm + monthlyCityKm) * 12 * Math.pow(growth, n - 1);
   const tyresByYear = tyreCostsByYear(v, N, annualKmFn);
+  const { interestByYear: loanInterestByYearArr, principal: loanPrincipal } = loanInterestByYear(
+    v.purchasePrice,
+    loan ?? { enabled: false, downPaymentPercent: 0, annualInterestRate: 0, tenureYears: 0 },
+    N,
+  );
 
   let cumulativeCash = 0;
   const totals: VehicleTotals = {
@@ -83,11 +99,14 @@ export function calculateVehicle(
     insurance: 0,
     tyres: 0,
     other: 0,
+    loanInterestTotal: 0,
     operatingTotal: 0,
     purchasePrice: v.purchasePrice,
     resale: 0,
     cashTco: 0,
     extraUpfront,
+    downPayment,
+    loanPrincipal,
     foregoneEarningsAtEnd: 0,
     economicTco: 0,
     unitsTotal: 0,
@@ -217,8 +236,9 @@ export function calculateVehicle(
       }
     }
 
+    const loanInterest = loanInterestByYearArr[n - 1] ?? 0;
     const operatingCost =
-      energyCost + maintenance + batteryReplacementCost + insurance + tyres + other;
+      energyCost + maintenance + batteryReplacementCost + insurance + tyres + other + loanInterest;
     const purchaseApplied = n === 1 ? v.purchasePrice : 0;
     const resaleReceived = n === N ? resale : 0;
     cumulativeCash += purchaseApplied + operatingCost - resaleReceived;
@@ -249,6 +269,7 @@ export function calculateVehicle(
       insurance,
       tyres,
       other,
+      loanInterest,
       operatingCost,
       purchaseApplied,
       resale: resaleReceived,
@@ -265,6 +286,7 @@ export function calculateVehicle(
     totals.insurance += insurance;
     totals.tyres += tyres;
     totals.other += other;
+    totals.loanInterestTotal += loanInterest;
     totals.operatingTotal += operatingCost;
     totals.resale = resaleReceived;
     totals.unitsTotal += v.powertrain === 'petrol' ? totalLitres : gridKwh;

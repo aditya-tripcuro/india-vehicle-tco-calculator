@@ -55,7 +55,7 @@ export function VehiclePanel({
         electricityEscalation: 0.03,
         highwayRangeKm: v.highwayRangeKm || 235,
         cityRangeKm: v.cityRangeKm || 343,
-        resaleSchedule: { year5: 0.35, year10: 0.15, year15: 0.05 },
+        resaleSchedule: { year1: 0.8, year5: 0.35, year10: 0.15, year15: 0.05 },
       });
     } else {
       onChange({
@@ -67,7 +67,7 @@ export function VehiclePanel({
         fuelPriceEscalation: 0.02,
         highwayRangeKm: 0,
         cityRangeKm: 0,
-        resaleSchedule: { year5: 0.4, year10: 0.2, year15: 0.05 },
+        resaleSchedule: { year1: 0.8, year5: 0.4, year10: 0.2, year15: 0.05 },
         manualReplacementYear: null,
       });
     }
@@ -191,6 +191,9 @@ export function VehiclePanel({
           <Field label="Insurance change (%/yr)">
             <NumberInput value={v.insuranceAnnualChange} percent step={1} onChange={(n) => onChange({ insuranceAnnualChange: n })} />
           </Field>
+          <Field label="Resale after 1 year (% of price)">
+            <NumberInput value={v.resaleSchedule.year1} percent min={0} max={100} onChange={(n) => onChange({ resaleSchedule: { ...v.resaleSchedule, year1: n } })} />
+          </Field>
           <Field label="Resale after 5 years (% of price)">
             <NumberInput value={v.resaleSchedule.year5} percent min={0} max={100} onChange={(n) => onChange({ resaleSchedule: { ...v.resaleSchedule, year5: n } })} />
           </Field>
@@ -202,9 +205,9 @@ export function VehiclePanel({
           </Field>
         </div>
         <p className="inline-note" style={{ margin: '8px 0 0' }}>
-          Resale = share of the purchase price recovered if sold at that age. Ownership ending
-          between these anchors interpolates linearly; the deduction happens in the final
-          ownership year only.
+          Resale = share of the purchase price recovered if sold at that age; the curve is fitted
+          through the 1/5/10/15-year anchors. Ownership ending between anchors interpolates
+          linearly; the deduction happens in the final ownership year only.
         </p>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', margin: '10px 0 6px', flexWrap: 'wrap' }}>

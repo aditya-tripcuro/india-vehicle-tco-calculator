@@ -33,7 +33,7 @@ export function AnnualTable({ comparison, onExportCsv }: Props) {
               {comparison.vehicles.map((vr, i) => (
                 <th
                   key={vr.config.id}
-                  colSpan={vr.config.powertrain === 'electric' ? 16 : 13}
+                  colSpan={vr.config.powertrain === 'electric' ? 17 : 14}
                   className="group"
                   style={{ '--group-color': VEHICLE_COLORS[i % VEHICLE_COLORS.length] } as React.CSSProperties}
                 >
@@ -74,6 +74,7 @@ export function AnnualTable({ comparison, onExportCsv }: Props) {
                         ins={y.insurance}
                         tyres={y.tyres}
                         other={y.other}
+                        loanInterest={y.loanInterest}
                         opex={y.operatingCost}
                         purchase={y.purchaseApplied}
                         cumCash={y.cumulativeCashTco}
@@ -107,6 +108,7 @@ export function AnnualTable({ comparison, onExportCsv }: Props) {
                     ins={t.insurance}
                     tyres={t.tyres}
                     other={t.other}
+                    loanInterest={t.loanInterestTotal}
                     opex={t.operatingTotal}
                     purchase={t.purchasePrice}
                     cumCash={t.cashTco}
@@ -144,6 +146,7 @@ function PetrolCols() {
       <th>Insurance ₹</th>
       <th>Tyres ₹</th>
       <th>Other ₹</th>
+      <th>Loan int. ₹</th>
       <th>Annual opex ₹</th>
       <th>Purchase ₹</th>
       <th>Cum. cash TCO ₹</th>
@@ -164,6 +167,7 @@ function EvCols() {
       <th>Insurance ₹</th>
       <th>Tyres ₹</th>
       <th>Other ₹</th>
+      <th>Loan int. ₹</th>
       <th>Annual opex ₹</th>
       <th>Purchase ₹</th>
       <th>Cum. cash TCO ₹</th>
@@ -186,6 +190,7 @@ interface CellsProps {
   ins: number;
   tyres: number;
   other: number;
+  loanInterest: number;
   opex: number;
   purchase: number;
   cumCash: number;
@@ -211,6 +216,7 @@ function CellsInRow(p: CellsProps) {
       <td>{formatINR(p.ins)}</td>
       <td>{formatINR(p.tyres)}</td>
       <td>{p.other > 0 ? formatINR(p.other) : '—'}</td>
+      <td>{p.loanInterest > 0 ? formatINR(p.loanInterest) : '—'}</td>
       <td>{formatINR(p.opex)}</td>
       <td>{p.purchase > 0 || p.isTotal ? formatINR(p.purchase) : '—'}</td>
       <td>{formatINR(p.cumCash)}</td>
