@@ -9,7 +9,8 @@ function summaryRow(label: string, value: string, cls?: string) {
 function vehicleRows(vr: VehicleResult, baseline: VehicleResult | undefined, ownershipYears: number): Array<{ label: string; value: string; cls?: string }> {
   const t = vr.totals;
   const y = (n: number) => vr.years[Math.min(n, ownershipYears) - 1];
-  const at = (n: number) => (ownershipYears >= n ? formatCompact(y(n).cumulativeCashTco) : '—');
+  const cashAt = (n: number) => (ownershipYears >= n ? formatCompact(y(n).cumulativeCashTco) : '—');
+  const econAt = (n: number) => (ownershipYears >= n ? formatCompact(y(n).cumulativeEconomicTco) : '—');
   const isEv = vr.config.powertrain === 'electric';
 
   const energyUnits = vr.config.powertrain === 'petrol'
@@ -27,8 +28,10 @@ function vehicleRows(vr: VehicleResult, baseline: VehicleResult | undefined, own
   const rows = [
     summaryRow('Purchase price', formatCompact(vr.config.purchasePrice)),
     summaryRow('Year 1 operating expenditure', formatCompact(vr.years[0].operatingCost)),
-    summaryRow('Year 5 cumulative cash TCO', at(5)),
-    summaryRow('Year 10 cumulative cash TCO', at(10)),
+    summaryRow('Year 5 cumulative cash TCO', cashAt(5)),
+    summaryRow('Year 5 cumulative economic TCO', econAt(5)),
+    summaryRow('Year 10 cumulative cash TCO', cashAt(10)),
+    summaryRow('Year 10 cumulative economic TCO', econAt(10)),
     summaryRow(`Year ${ownershipYears} cumulative cash TCO`, formatCompact(t.cashTco)),
     summaryRow(`Year ${ownershipYears} cumulative economic TCO`, formatCompact(t.economicTco)),
     { label: 'divider', value: '', cls: 'divider' },
