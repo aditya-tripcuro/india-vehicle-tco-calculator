@@ -205,9 +205,9 @@ export function VehiclePanel({
           </Field>
         </div>
         <p className="inline-note" style={{ margin: '8px 0 0' }}>
-          Resale = share of the purchase price recovered if sold at that age; the curve is fitted
-          through the 1/5/10/15-year anchors. Ownership ending between anchors interpolates
-          linearly; the deduction happens in the final ownership year only.
+          Resale = share of the purchase price recovered if sold at that age. A smooth monotone
+          curve (fitted through the 1/5/10/15-year anchors, no straight-line segments) gives the
+          value at any age; the deduction happens in the final ownership year only.
         </p>
 
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', margin: '10px 0 6px', flexWrap: 'wrap' }}>

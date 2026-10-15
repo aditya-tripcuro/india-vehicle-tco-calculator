@@ -386,11 +386,11 @@ describe('resale value and final TCO', () => {
     expect(mk('evitara', 15).totals.resale).toBe(88_400);
   });
 
-  it('interpolates resale linearly between anchors (year 7 petrol = 32%)', () => {
+  it('follows the smooth curve on the 5→10-year segment (year 7 = 30.4%)', () => {
     const settings = { ...DEFAULT_SETTINGS, ownershipYears: 7 };
     const r = calculateVehicle(makeDefaultVehicles()[0], settings, makeDefaultVehicles()[0]);
-    // between (5, 40%) and (10, 20%): 40% − (2/5)·20% = 32%
-    expect(r.totals.resale).toBeCloseTo(1_370_000 * 0.32, 4);
+    // PCHIP value between (5, 40%) and (10, 20%): 30.43% (not 32% linear)
+    expect(r.totals.resale).toBeCloseTo(1_370_000 * 0.3042506, 0);
   });
 
   it('includes the purchase price exactly once and reconciles cumulative cash TCO', () => {
@@ -551,11 +551,24 @@ describe('resale curve with the year-1 anchor', () => {
     expect(ev.totals.resale).toBe(1_414_400); // 80% of ₹17,68,000
   });
 
-  it('interpolates the 1→5-year segment (year 3 petrol = 60%)', () => {
-    const settings = { ...DEFAULT_SETTINGS, ownershipYears: 3 };
-    const r = calculateVehicle(makeDefaultVehicles()[0], settings, makeDefaultVehicles()[0]);
-    // between (1, 80%) and (5, 40%): 80% − (2/4)·40% = 60%
-    expect(r.totals.resale).toBeCloseTo(1_370_000 * 0.6, 4);
+  it('interpolates the 1→5-year segment smoothly (PCHIP, not straight lines)', () => {
+    const mk = (years: number) => {
+      const settings = { ...DEFAULT_SETTINGS, ownershipYears: years };
+      return calculateVehicle(makeDefaultVehicles()[0], settings, makeDefaultVehicles()[0])
+        .totals.resale;
+    };
+    // Monotone cubic passes exactly through the anchors...
+    expect(mk(1)).toBe(1_096_000); // 80%
+    expect(mk(5)).toBe(548_000); // 40%
+    // ...and follows the fitted curve between them: year 3 = 55.76% (not the
+    // 60% a straight line would give), year 4 = 46.84%.
+    expect(mk(3)).toBeCloseTo(1_370_000 * 0.5576037, 0);
+    expect(mk(4)).toBeCloseTo(1_370_000 * 0.4683756, 0);
+    // strictly decreasing and bounded
+    expect(mk(2)).toBeLessThan(mk(1));
+    expect(mk(3)).toBeLessThan(mk(2));
+    expect(mk(4)).toBeLessThan(mk(3));
+    expect(mk(4)).toBeGreaterThan(0);
   });
 });
 
