@@ -52,7 +52,9 @@ npm run compare    # print the default-scenario comparison to the terminal
   and the opportunity cost is computed on the **down-payment difference** vs the baseline
   only — the financed portion is not the owner's money at stake.
 - **Outputs**: interactive chart (annual opex / cumulative cash / cumulative economic,
-  with battery-replacement markers), annual TCO table with totals, maintenance/tyres/
+  with battery-replacement markers, and a **net-of-resale "sell it this year" view** so
+  cumulative curves rise smoothly instead of dipping when the final-year resale credit
+  exceeds that year's running costs), annual TCO table with totals, maintenance/tyres/
   insurance table with expandable breakdowns and replacement-year highlighting, summary
   cards (cheapest in cash and economic terms), a battery condition + replacement history
   panel with range estimates scaled to remaining capacity, and a static feature/spec

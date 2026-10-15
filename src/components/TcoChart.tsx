@@ -18,8 +18,10 @@ interface Props {
   comparison: ComparisonResult;
   metric: TcoMetric;
   includeOpportunity: boolean;
+  netOfResale: boolean;
   onMetricChange: (m: TcoMetric) => void;
   onIncludeOpportunityChange: (on: boolean) => void;
+  onNetOfResaleChange: (on: boolean) => void;
 }
 
 interface TooltipPayloadEntry {
@@ -33,8 +35,10 @@ export function TcoChart({
   comparison,
   metric,
   includeOpportunity,
+  netOfResale,
   onMetricChange,
   onIncludeOpportunityChange,
+  onNetOfResaleChange,
 }: Props) {
   const isCumulative = metric !== 'annual';
 
@@ -47,14 +51,24 @@ export function TcoChart({
         const y = vr.years[i];
         let value: number;
         if (metric === 'annual') value = y.operatingCost;
-        else if (metric === 'cash' || !includeOpportunity) value = y.cumulativeCashTco;
-        else value = y.cumulativeEconomicTco;
+        else {
+          // Opportunity toggle: checked = economic (cash + foregone earnings on
+          // the extra upfront), unchecked = pure cash. Net variant subtracts the
+          // vehicle's remaining market value ("sell it this year" basis).
+          value = netOfResale
+            ? includeOpportunity
+              ? y.cumulativeEconomicNetOfResale
+              : y.cumulativeCashNetOfResale
+            : includeOpportunity
+              ? y.cumulativeEconomicTco
+              : y.cumulativeCashTco;
+        }
         row[vr.config.id] = toLakh(value);
       }
       rows.push(row);
     }
     return rows;
-  }, [comparison, metric, includeOpportunity]);
+  }, [comparison, metric, includeOpportunity, netOfResale]);
 
   const replacementDots = useMemo(() => {
     if (!isCumulative) return [];
@@ -62,8 +76,13 @@ export function TcoChart({
     for (const vr of comparison.vehicles) {
       for (const y of vr.years) {
         if (y.batteryReplacementCost > 0) {
-          const value =
-            includeOpportunity && metric === 'economic' ? y.cumulativeEconomicTco : y.cumulativeCashTco;
+          const value = netOfResale
+            ? includeOpportunity
+              ? y.cumulativeEconomicNetOfResale
+              : y.cumulativeCashNetOfResale
+            : includeOpportunity
+              ? y.cumulativeEconomicTco
+              : y.cumulativeCashTco;
           dots.push({
             vehicleId: vr.config.id,
             year: y.year,
@@ -75,9 +94,12 @@ export function TcoChart({
       }
     }
     return dots;
-  }, [comparison, isCumulative, metric, includeOpportunity]);
+  }, [comparison, isCumulative, metric, includeOpportunity, netOfResale]);
 
-  const yLabel = metric === 'annual' ? 'Annual operating expenditure (₹ lakh)' : 'Cumulative TCO (₹ lakh)';
+  const yLabel =
+    metric === 'annual'
+      ? 'Annual operating expenditure (₹ lakh)'
+      : `Cumulative ${includeOpportunity ? 'economic' : 'cash'} TCO${netOfResale ? ', net of resale value' : ''} (₹ lakh)`;
 
   return (
     <div className="card">
@@ -99,7 +121,24 @@ export function TcoChart({
           />
           Include opportunity-cost adjustment (economic TCO)
         </label>
+        <label className="toggle">
+          <input
+            type="checkbox"
+            checked={netOfResale}
+            disabled={metric === 'annual'}
+            onChange={(e) => onNetOfResaleChange(e.target.checked)}
+          />
+          Net of resale value if sold that year
+        </label>
       </div>
+
+      {isCumulative && (
+        <p className="inline-note" style={{ margin: '0 0 8px' }}>
+          {netOfResale
+            ? 'Net-cost view: cumulative spend minus what the vehicle is still worth (sell-today basis). Rises smoothly and ends at the same total as the table.'
+            : 'Strict view: resale is credited only in the final ownership year, so the cumulative line can dip in the last year when the resale credit exceeds that year\u2019s running costs.'}
+        </p>
+      )}
 
       <div className="chart-box">
         <ResponsiveContainer width="100%" height="100%">

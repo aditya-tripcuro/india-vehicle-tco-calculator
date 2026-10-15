@@ -572,6 +572,45 @@ describe('resale curve with the year-1 anchor', () => {
   });
 });
 
+describe('net-of-resale (sell-today) view', () => {
+  it('rises monotonically and lands exactly on the strict final TCO', () => {
+    const r = resultFor('evitara'); // default 15-year ownership
+    let prev = -Infinity;
+    for (const y of r.years) {
+      expect(y.cumulativeCashNetOfResale).toBeGreaterThan(prev);
+      prev = y.cumulativeCashNetOfResale;
+    }
+    const last = r.years[14];
+    expect(last.marketValueRemaining).toBeCloseTo(last.resale, 4);
+    expect(last.cumulativeCashNetOfResale).toBeCloseTo(last.cumulativeCashTco, 4);
+    expect(last.cumulativeEconomicNetOfResale).toBeCloseTo(last.cumulativeEconomicTco, 4);
+  });
+
+  it('removes the year-15 dip the strict convention produces for the EV (loan on)', () => {
+    const settings = {
+      ...DEFAULT_SETTINGS,
+      loan: { enabled: true, downPaymentPercent: 0.2, annualInterestRate: 0.09, tenureYears: 5 },
+    };
+    const r = resultFor('evitara', defaults(), settings);
+    // Strict view: resale credit (₹88,400) exceeds final-year running costs → dip
+    expect(r.years[14].cumulativeCashTco).toBeLessThan(r.years[13].cumulativeCashTco);
+    // Net view: market value falls by less than the year's costs → keeps rising
+    expect(r.years[14].cumulativeCashNetOfResale).toBeGreaterThan(
+      r.years[13].cumulativeCashNetOfResale,
+    );
+    expect(r.years[14].cumulativeCashNetOfResale).toBeCloseTo(r.years[14].cumulativeCashTco, 4);
+  });
+
+  it('values the vehicle on the fitted curve (80% at year 1)', () => {
+    const r = resultFor('brezza');
+    expect(r.years[0].marketValueRemaining).toBeCloseTo(1_370_000 * 0.8, 4);
+    expect(r.years[0].cumulativeCashNetOfResale).toBeCloseTo(
+      r.years[0].cumulativeCashTco - 1_370_000 * 0.8,
+      4,
+    );
+  });
+});
+
 describe('loan purchase', () => {
   const loanOn = {
     ...DEFAULT_SETTINGS,

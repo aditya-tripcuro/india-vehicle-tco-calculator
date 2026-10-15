@@ -25,6 +25,7 @@ export default function App() {
   const [state, setState] = useState<AppState>(() => loadCurrentState() ?? initialState());
   const [metric, setMetric] = useState<TcoMetric>('cash');
   const [includeOpportunity, setIncludeOpportunity] = useState(true);
+  const [netOfResale, setNetOfResale] = useState(true);
   const [scenarios, setScenarios] = useState<SavedScenario[]>(() => listScenarios());
   const [scenarioName, setScenarioName] = useState('');
   const [selectedScenarioId, setSelectedScenarioId] = useState('');
@@ -245,8 +246,10 @@ export default function App() {
             comparison={comparison}
             metric={metric}
             includeOpportunity={includeOpportunity}
+            netOfResale={netOfResale}
             onMetricChange={setMetric}
             onIncludeOpportunityChange={setIncludeOpportunity}
+            onNetOfResaleChange={setNetOfResale}
           />
         </section>
 

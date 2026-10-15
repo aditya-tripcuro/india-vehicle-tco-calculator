@@ -138,6 +138,13 @@ export interface VehicleYearResult {
   resale: number;
 
   cumulativeCashTco: number;
+  /** Market value of the vehicle if sold in this year (fitted resale curve). */
+  marketValueRemaining: number;
+  /** Cumulative cash TCO net of the vehicle's remaining market value — the
+   *  "cost if I sold it this year" view. Rises monotonically and equals
+   *  cumulativeCashTco in the final ownership year. */
+  cumulativeCashNetOfResale: number;
+  cumulativeEconomicNetOfResale: number;
   opportunityAdjustment: number;
   cumulativeForegoneEarnings: number;
   cumulativeEconomicTco: number;

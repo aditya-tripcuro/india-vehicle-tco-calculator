@@ -8,7 +8,7 @@ import type {
   VehicleTotals,
   VehicleYearResult,
 } from './types';
-import { resaleValue, loanInterestByYear } from './utils';
+import { resaleValue, resalePercentAt, loanInterestByYear } from './utils';
 
 /**
  * Pure calculation engine. No React, no DOM. Rounding happens only at display
@@ -250,6 +250,12 @@ export function calculateVehicle(
     const prevForegone = extraUpfront * (Math.pow(1 + rate, n - 1) - 1);
     const opportunityAdjustment = cumulativeForegone - prevForegone;
 
+    // "Sell it this year" view: everything spent so far minus what the vehicle
+    // is still worth. Rises smoothly (no year-15 cliff) and converges exactly
+    // to the strict cumulative figures at the end of the ownership period.
+    const marketValueRemaining = v.purchasePrice * resalePercentAt(v, n);
+    const cumulativeCashNetOfResale = cumulativeCash + resaleReceived - marketValueRemaining;
+
     years.push({
       year: n,
       highwayKm,
@@ -274,6 +280,9 @@ export function calculateVehicle(
       purchaseApplied,
       resale: resaleReceived,
       cumulativeCashTco: cumulativeCash,
+      marketValueRemaining,
+      cumulativeCashNetOfResale,
+      cumulativeEconomicNetOfResale: cumulativeCashNetOfResale + cumulativeForegone,
       opportunityAdjustment,
       cumulativeForegoneEarnings: cumulativeForegone,
       cumulativeEconomicTco: cumulativeCash + cumulativeForegone,
